@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Asset": {
+      "title": "Asset",
+      "description": "An organizational asset to be protected.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Hardware", "Software", "Data", "Process", "Service"] },
+        "owner": { "type": "string" },
+        "criticality": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "name", "type", "owner", "criticality", "userId"]
+    },
+    "Risk": {
+      "title": "Risk",
+      "description": "An identified security risk.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "assetId": { "type": "string" },
+        "threatId": { "type": "string" },
+        "likelihood": { "type": "number" },
+        "impact": { "type": "number" },
+        "score": { "type": "number" },
+        "mitigation": { "type": "string" },
+        "nistControl": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "assetId", "threatId", "likelihood", "impact", "score", "userId"]
+    }
+  },
+  "firestore": {
+    "/assets/{assetId}": {
+      "schema": "Asset",
+      "description": "Collection of organizational assets."
+    },
+    "/risks/{riskId}": {
+      "schema": "Risk",
+      "description": "Collection of identified risks."
+    }
+  }
+}

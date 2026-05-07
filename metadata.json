@@ -1,0 +1,6 @@
+{
+  "name": "GuardianRisk GRC",
+  "description": "A NIST SP 800-30 aligned Cyber Risk Assessment tool for managing assets, identifying threats, and calculating risk scores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

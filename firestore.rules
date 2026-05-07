@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(data) {
+      return isSignedIn() && data.userId == request.auth.uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Asset Validation
+    function isValidAsset(data) {
+      return data.keys().hasAll(['id', 'name', 'type', 'owner', 'criticality', 'userId'])
+        && data.keys().size() == 6
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.type in ['Hardware', 'Software', 'Data', 'Process', 'Service']
+        && data.owner is string && data.owner.size() <= 100
+        && data.criticality is number && data.criticality >= 1 && data.criticality <= 5
+        && data.userId == request.auth.uid;
+    }
+
+    // Risk Validation
+    function isValidRisk(data) {
+      return data.keys().hasAll(['id', 'assetId', 'threatId', 'likelihood', 'impact', 'score', 'userId'])
+        && data.id is string && data.id.size() <= 128
+        && data.assetId is string && data.assetId.size() <= 128
+        && data.threatId is string && data.threatId.size() <= 128
+        && data.likelihood is number && data.likelihood >= 1 && data.likelihood <= 5
+        && data.impact is number && data.impact >= 1 && data.impact <= 5
+        && data.score == data.likelihood * data.impact
+        && data.userId == request.auth.uid;
+    }
+
+    // --- Collections ---
+
+    match /assets/{assetId} {
+      allow read: if isOwner(existing());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(assetId) 
+        && isValidAsset(incoming());
+        
+      allow update: if isOwner(existing())
+        && isValidAsset(incoming())
+        && incoming().userId == existing().userId; // Immutable Owner
+        
+      allow delete: if isOwner(existing());
+    }
+
+    match /risks/{riskId} {
+      allow read: if isOwner(existing());
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && isValidId(riskId) 
+        && isValidRisk(incoming())
+        // Relational Integrity: Asset must exist and be owned by user
+        && exists(/databases/$(database)/documents/assets/$(incoming().assetId))
+        && get(/databases/$(database)/documents/assets/$(incoming().assetId)).data.userId == request.auth.uid;
+        
+      allow update: if isOwner(existing())
+        && isValidRisk(incoming())
+        && incoming().userId == existing().userId
+        && incoming().assetId == existing().assetId; // Immutable Asset Link
+        
+      allow delete: if isOwner(existing());
+    }
+    
+    // Admin Override (if any admins added in future)
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+  }
+}
