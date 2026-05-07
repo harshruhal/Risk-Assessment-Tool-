@@ -1,6 +1,8 @@
 {
-  "name": "react-example",
+  "name": "guardianrisk",
+  "description": "Cybersecurity risk assessment platform implementing NIST SP 800-30 methodologies",
   "private": true,
+  "author": "Harsh Ruhal",
   "version": "0.0.0",
   "type": "module",
   "scripts": {
